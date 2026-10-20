@@ -1,0 +1,59 @@
+name: Update profile graphics
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"     # every 5 minutes (GitHub's minimum)
+  workflow_dispatch:           # run it by hand from the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - scripts/update_stats.py
+      - scripts/pixel.py
+      - .github/workflows/update-stats.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-profile-graphics
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Pixel-art contribution heatmap + stats card (scripts/update_stats.py)
+      - name: Generate heatmap and stats
+        env:
+          # PROFILE_TOKEN (optional secret) lets the script count your private repos too.
+          # Without it, the built-in token is used and only public data is counted.
+          GH_TOKEN: ${{ secrets.PROFILE_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_LOGIN: ${{ github.repository_owner }}
+          INCLUDE_PRIVATE: ${{ secrets.PROFILE_TOKEN != '' }}
+          GH_FALLBACK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/update_stats.py --out assets/generated
+
+      # Contribution snake, recoloured to the portfolio palette (teal -> gold)
+      - name: Generate contribution snake
+        continue-on-error: true   # never let the snake block the stats card
+        uses: Platane/snk/svg-only@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          github_token: ${{ secrets.PROFILE_TOKEN || secrets.GITHUB_TOKEN }}
+          outputs: |
+            assets/generated/snake.svg?color_snake=#ffd700&color_dots=#1b1b1b,#24403f,#5c8a8a,#8abeb7,#ffd700
+
+      - name: Commit changes
+        if: ${{ !cancelled() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/generated
+          git diff --cached --quiet || git commit -m "chore: refresh profile graphics"
+          git push
