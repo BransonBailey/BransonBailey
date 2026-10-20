@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://bransonbailey.github.io"><img src="assets/header.svg" width="830" alt="Branson Bailey: cybersecurity student, IT security intern and penetration tester" /></a>
+<a href="https://bransonbailey.github.io"><img src="assets/header.svg" width="830" alt="Branson Bailey: Cybersecurity Professional" /></a>
 
 <br/><br/>
 
